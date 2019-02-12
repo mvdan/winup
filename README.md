@@ -9,8 +9,8 @@ Still a Work In Progress, so please file bugs.
 ### Requirements
 
 * VirtualBox v6 with VT-x or alike
-* At least 4GiB spare RAM
-* At least 50GiB spare disk space
+* 4 GiB spare RAM recomended
+* 50 GiB spare SSD recommended
 
 A decent CPU and internet connection are also recommended, as the process
 requires running Windows and downloading many large archives. TODO: add

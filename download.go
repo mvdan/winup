@@ -19,9 +19,13 @@ import (
 const (
 	win10Zip = "cache/win10.zip"
 	win10Ova = "cache/win10.ova"
-	guestIso = "cache/guest6.0.4.iso"
-	goInst   = "cache/go1.11.5.windows-amd64.msi"
-	gitInst  = "cache/git-2.20.1-amd64.exe"
+
+	guestIso       = "cache/guest6.0.4.iso"
+	debloatScript  = "cache/debloater.ps1"
+	onedriveScript = "cache/remove-onedrive.ps1"
+
+	goInst  = "cache/go1.11.5.windows-amd64.msi"
+	gitInst = "cache/git-2.20.1-amd64.exe"
 )
 
 type download struct {
@@ -34,6 +38,16 @@ var downloads = []download{
 		win10Zip,
 		"https://az792536.vo.msecnd.net/vms/VMBuild_20180425/VirtualBox/MSEdge/MSEdge.Win10.VirtualBox.zip",
 		"36c13632cc9769373262bf041f2a81cc2cbbb0417ebfd965a2bc5a3c7f4e38e7",
+	},
+	{
+		debloatScript,
+		"https://raw.githubusercontent.com/Sycnex/Windows10Debloater/65a651f262d67fb69080ff1f26c698231db383ff/Windows10SysPrepDebloater.ps1",
+		"fd6fbe791c2762a050ec263e69ccd3450332d50bcee5c182cbe3ddfd30449d26",
+	},
+	{
+		onedriveScript,
+		"https://raw.githubusercontent.com/Sycnex/Windows10Debloater/65a651f262d67fb69080ff1f26c698231db383ff/Individual%20Scripts/Uninstall%20OneDrive",
+		"b953da06b98d28e173d4c948a8b0efcc47c709df86204b1f897b86257dc97960",
 	},
 	/*
 		{
@@ -65,7 +79,7 @@ func getDownloads() {
 			todo = append(todo, dw)
 			continue
 		}
-		if *short {
+		if !*check {
 			continue
 		}
 		wg.Add(1)
@@ -96,13 +110,16 @@ func getDownloads() {
 		if err := f.Close(); err != nil {
 			panic(err)
 		}
+		wg.Add(1)
 		go func(dw download) {
 			sum := hashFile(dw.name)
 			if sum != dw.sha256sum {
 				fatalf("%s checksum mismatch!", dw.name)
 			}
+			wg.Done()
 		}(dw)
 	}
+	wg.Wait()
 
 	extractZip(win10Zip, win10Ova)
 }

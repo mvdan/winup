@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,10 +13,11 @@ import (
 )
 
 const (
-	regUser   = "IEUser"
-	adminUser = "Administrator"
+	regUser   = "ieuser"
+	adminUser = "administrator"
 	password  = "Passw0rd!"
 
+	tempDir    = `C:\Users\administrator`
 	powerShell = `C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe`
 )
 
@@ -57,34 +57,64 @@ func tweakBox() {
 	)
 }
 
+func matchStdout(substr, name string, args ...string) bool {
+	out, err := command(name, args...).Output()
+	return err == nil && strings.Contains(string(out), substr)
+}
+
 // waitStdout will keep running a command every few seconds until its stdout
-// matches a substring.
+// matches a substring. If substr begins with "! ", it is a negative match.
 func waitStdout(substr, name string, args ...string) {
+	// usually it's not ready right away, but make the first sleep faster
+	time.Sleep(500 * time.Millisecond)
 	var out []byte
 	var err error
+	negative := strings.HasPrefix(substr, "! ")
+	if negative {
+		substr = substr[2:]
+	}
 	for i := 0; i < 120; i++ {
-		time.Sleep(2 * time.Second)
 		out, err = command(name, args...).Output()
-		if strings.Contains(string(out), substr) {
+		if strings.Contains(string(out), substr) == !negative {
 			return
 		}
+		time.Sleep(2 * time.Second)
 	}
 	fatalf("timed out waiting for a stdout match: %v\n%s", err, out)
 }
 
 func boot() {
 	vbox("startvm", *name)
-	// wait for the login to finish
-	vbox("guestproperty", "wait",
-		*name, "/VirtualBox/GuestInfo/OS/LoggedInUsers")
+	// wait for the login to finish; once for the guest to respond, a second
+	// time for the value to change on the login
+	for i := 0; i < 2; i++ {
+		vbox("guestproperty", "wait", *name, "/VirtualBox/GuestInfo/OS/LoggedInUsers")
+	}
 	waitStdout("Value: 1", "vboxmanage", "-q", "guestproperty", "get",
 		*name, "/VirtualBox/GuestInfo/OS/LoggedInUsers")
 
 	// waiting for explore.exe doesn't really make us wait longer.
 	// TODO: any way to see if we reached the desktop? is that helpful?
 	//waitStdout("ProcessName", "vboxmanage", "-q", "guestcontrol",
-	//        *name, "run", "--username", "IEUser", "--password", "Passw0rd!",
-	//        "--", powerShell, "-c", `Get-Process *explorer*`)
+	//        *name, "run", "--username", regUser, "--password", password,
+	//        "--", powerShell, "-c", `get-process *explorer*`)
+}
+
+func ensureRunning() {
+	if matchStdout(`VMState="saved"`, "vboxmanage", "-q",
+		"showvminfo", "--machinereadable", *name) {
+		// already running, but saved
+		boot()
+		return
+	}
+	if matchStdout("Value: 1", "vboxmanage", "-q", "guestproperty", "get",
+		*name, "/VirtualBox/GuestInfo/OS/LoggedInUsers") {
+		// already running and logged in
+		return
+	}
+	if firstStateFn || justKilled {
+		boot()
+	}
 }
 
 // shutdown is a proper shutdown action, letting the guest OS halt normally.
@@ -102,7 +132,10 @@ func shutdown() {
 func forceShutdown() {
 	cmd := command("vboxmanage", "-q", "controlvm", *name, "poweroff")
 	out, err := cmd.CombinedOutput()
-	if strings.Contains(string(out), "is not currently running") {
+	switch {
+	case strings.Contains(string(out), "is not currently running"):
+		return
+	case strings.Contains(string(out), "not find a registered machine"):
 		return
 	}
 	if err != nil {
@@ -110,6 +143,7 @@ func forceShutdown() {
 	}
 	// apparently virtualbox doesn't release the VM lock instantly
 	time.Sleep(time.Second)
+	justKilled = true
 }
 
 // firstBoot ensures that the first VM boot succeeds, which can take a while.
@@ -130,23 +164,30 @@ func inputCodes(seqs ...[]uint8) {
 	vbox(args...)
 }
 
-func enableAdmin() {
-	boot() // in case it's not yet running
-	ctx, cancel := context.WithCancel(context.Background())
+func pshellAdmin(src string) {
 	go func() {
-		// keep pressing ALT+Y until we've run the cmd as admin
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				inputCodes(alt(ascii("y")))
-				time.Sleep(time.Second)
-			}
-		}
+		// press ALT+Y once we see the consent window process
+		waitStdout("ProcessName", "vboxmanage", "-q", "guestcontrol",
+			*name, "run", "--username", adminUser, "--password", password,
+			"--", powerShell, "-c", `get-process *consent*`)
+		inputCodes(alt(ascii("y")))
 	}()
-	run("vboxmanage", "-q", "guestcontrol", *name, "run",
-		"--username", "IEUser", "--password", "Passw0rd!",
-		"--", powerShell, "-c", `Start-Process -verb runAs powershell.exe -argumentlist "net user Administrator /active:yes"`)
-	cancel()
+	// we need to run powershell as a regular user first, since we may not
+	// have enabled admin login yet, and because some commands require a
+	// real terminal window.
+	vbox("guestcontrol", *name, "run", "--username", regUser, "--password", password,
+		"--", powerShell, "-c", fmt.Sprintf(`start-process -wait -verb runas powershell -argumentlist "%s"`, src))
+
+	// sometimes "start-process -wait" will return before the powershell
+	// window has finished running; double-check via get-process
+	waitStdout(`! ProcessName`, "vboxmanage", "-q", "guestcontrol", *name,
+		"run", "--username", regUser, "--password", password,
+		"--", powerShell, "-c",
+		`get-process | where-object {$_.MainWindowTitle -eq "Administrator: Windows PowerShell"}`)
+
+}
+
+func enableAdmin() {
+	ensureRunning()
+	pshellAdmin("net user administrator /active:yes")
 }

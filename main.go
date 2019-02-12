@@ -14,12 +14,11 @@ import (
 )
 
 var (
-	short = flag.Bool("short", false, "skip optional checks")
-	kill  = flag.Bool("kill", false, "kill the VM if it is running")
+	check = flag.Bool("check", false, "enable extra checks")
 
 	name = flag.String("name", "winup_10_64", "name of the virtual machine")
 	cpus = flag.Int("cpus", runtime.NumCPU()/2, "number of cpus to assign")
-	mem  = flag.Int("mem", 4096, "memory in megabytes to assign")
+	mem  = flag.Int("mem", 2048, "memory in megabytes to assign")
 )
 
 func logf(format string, a ...interface{}) {
@@ -36,10 +35,17 @@ func main() {
 	loadState()
 	getDownloads()
 
-	onState(1, importBox, "imported VM image")
-	onState(2, tweakBox, "tweaked VM settings")
-	onState(3, firstBoot, "first VM boot")
-	onState(4, enableAdmin, "enabled admin login")
+	// 10s: import, first boot, core settings; see setup.go
+	onState(10, importBox, "imported VM image")
+	onState(11, tweakBox, "tweaked VM settings")
+	onState(12, firstBoot, "first VM boot")
+	onState(13, enableAdmin, "enabled admin login")
+
+	// 20s: uninstall and disable clutter
+	onState(20, runDebloater, "ran debloater.ps1")
+	onState(21, removeOnedrive, "removed onedrive")
+
+	fmt.Println("all done!")
 }
 
 var state, lastState progressState
@@ -67,7 +73,10 @@ func loadState() {
 	}
 }
 
-var firstStateFn = true
+var (
+	firstStateFn = true
+	justKilled   = false
+)
 
 func onState(step int, fn func(), description string) {
 	if state.Step >= step {
@@ -76,20 +85,18 @@ func onState(step int, fn func(), description string) {
 		lastState.Description = description
 		return
 	}
-	fmt.Fprintf(os.Stderr, "\n== Step %d ==\n\n", step)
+	fmt.Fprintf(os.Stderr, "\n== Step %d: %s ==\n\n", step, description)
 	if firstStateFn {
-		if *kill {
-			forceShutdown()
-		}
+		forceShutdown()
 		if lastState.Step > 0 {
 			// This step might have failed before; try again from the
 			// previous snapshot.
 			vbox("snapshot", *name, "restore", lastState.SnapName())
 		}
 	}
-	firstStateFn = false
 
 	fn()
+	firstStateFn = false
 
 	state.Readme = "This file records the last VM setup step that succeeded."
 	state.Step = step
