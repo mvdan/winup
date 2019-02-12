@@ -22,7 +22,7 @@ const (
 
 	guestIso       = "cache/guest6.0.4.iso"
 	debloatScript  = "cache/debloater.ps1"
-	onedriveScript = "cache/remove-onedrive.ps1"
+	onedriveScript = "cache/remove_onedrive.ps1"
 
 	goInst  = "cache/go1.11.5.windows-amd64.msi"
 	gitInst = "cache/git-2.20.1-amd64.exe"

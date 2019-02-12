@@ -15,6 +15,7 @@ import (
 
 var (
 	check = flag.Bool("check", false, "enable extra checks")
+	reuse = flag.Bool("reuse", false, "reuse running VM as-is")
 
 	name = flag.String("name", "winup_10_64", "name of the virtual machine")
 	cpus = flag.Int("cpus", runtime.NumCPU()/2, "number of cpus to assign")
@@ -44,6 +45,8 @@ func main() {
 	// 20s: uninstall and disable clutter
 	onState(20, runDebloater, "ran debloater.ps1")
 	onState(21, removeOnedrive, "removed onedrive")
+	onState(22, meteredNet, "set network as metered")
+	onState(23, noBackground, "disabled background work")
 
 	fmt.Println("all done!")
 }
@@ -86,7 +89,7 @@ func onState(step int, fn func(), description string) {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "\n== Step %d: %s ==\n\n", step, description)
-	if firstStateFn {
+	if firstStateFn && !*reuse {
 		forceShutdown()
 		if lastState.Step > 0 {
 			// This step might have failed before; try again from the

@@ -3,7 +3,11 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+)
 
 func pshellf(format string, a ...interface{}) {
 	vbox("guestcontrol", *name, "run",
@@ -11,21 +15,36 @@ func pshellf(format string, a ...interface{}) {
 		"--", powerShell, "-c", fmt.Sprintf(format, a...))
 }
 
+func runScript(path string, args ...string) {
+	base := filepath.Base(path)
+	vbox("guestcontrol", *name, "copyto",
+		"--username", adminUser, "--password", password,
+		"--target-directory", tempDir, path)
+	pshellAdmin(tempDir + `\` + base + strings.Join(args, " "))
+}
+
 // runDebloater runs an MIT-licensed script to remove bloatware that comes
 // installed with Windows 10. It also enhances some privacy settings and
 // disables certain background services.
 func runDebloater() {
 	ensureRunning()
-	vbox("guestcontrol", *name, "copyto", "--username", adminUser, "--password", password,
-		"--target-directory", tempDir, debloatScript)
-	pshellAdmin(tempDir + `\debloater.ps1 -SysPrep -Debloat`)
+	runScript(debloatScript, "-SysPrep", "-Debloat")
 }
 
 // removeOnedrive removes OneDrive, which is a separate script from the
 // debloater one.
 func removeOnedrive() {
 	ensureRunning()
-	vbox("guestcontrol", *name, "copyto", "--username", adminUser, "--password", password,
-		"--target-directory", tempDir, onedriveScript)
-	pshellAdmin(tempDir + `\remove-onedrive.ps1`)
+	runScript(onedriveScript)
+}
+
+func meteredNet() {
+	ensureRunning()
+	runScript("scripts/ethernet_metered.ps1")
+}
+
+func noBackground() {
+	ensureRunning()
+	pshellAdmin("Set-AppBackgroundTaskResourcePolicy -Mode Conservative")
+	// TODO: disable background net usage, but how?
 }
