@@ -42,11 +42,15 @@ func main() {
 	onState(12, firstBoot, "first VM boot")
 	onState(13, enableAdmin, "enabled admin login")
 
-	// 20s: uninstall and disable clutter
+	// 20s: uninstall and disable clutter; see debloat.go
 	onState(20, runDebloater, "ran debloater.ps1")
 	onState(21, removeOnedrive, "removed onedrive")
 	onState(22, meteredNet, "set network as metered")
 	onState(23, noBackground, "disabled background work")
+
+	// 30s: reboot, internet, install SSH server
+	//onState(14, enableSSh, "enabled SSH server")
+	// See Find-Module and Install-Module in powershell
 
 	fmt.Println("all done!")
 }

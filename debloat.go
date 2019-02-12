@@ -45,6 +45,5 @@ func meteredNet() {
 
 func noBackground() {
 	ensureRunning()
-	pshellAdmin("Set-AppBackgroundTaskResourcePolicy -Mode Conservative")
-	// TODO: disable background net usage, but how?
+	runScript("scripts/no_background.ps1")
 }

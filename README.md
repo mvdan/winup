@@ -21,9 +21,8 @@ estimates of final time/disk/net usage.
 The final VM snapshot will be better than the original from Microsoft:
 
 * Fast: the live snapshot starts up in ~5s on my laptop
-* Usable: enabled SSH access, including login as admin (TODO ssh part)
-* Slim: removed apps like Xbox, OneDrive, Skype, and Duolingo (TODO)
-* Idle: disabled unnecessary services like indexing and telemetry (TODO)
+* Usable: SSH access, including login as admin (TODO ssh part)
+* Idle: less bloatware, no telemetry, fewer background services
 
 The final image has the users `ieuser` and `administrator`, both with the
 default password `Passw0rd!`.
