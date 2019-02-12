@@ -20,7 +20,7 @@ func runScript(path string, args ...string) {
 	vbox("guestcontrol", *name, "copyto",
 		"--username", adminUser, "--password", password,
 		"--target-directory", tempDir, path)
-	pshellAdmin(tempDir + `\` + base + strings.Join(args, " "))
+	pshellAdmin(tempDir + `\` + base + " " + strings.Join(args, " "))
 }
 
 // runDebloater runs an MIT-licensed script to remove bloatware that comes

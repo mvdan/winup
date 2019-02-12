@@ -176,7 +176,7 @@ func pshellAdmin(src string) {
 	// have enabled admin login yet, and because some commands require a
 	// real terminal window.
 	vbox("guestcontrol", *name, "run", "--username", regUser, "--password", password,
-		"--", powerShell, "-c", fmt.Sprintf(`start-process -wait -verb runas powershell -argumentlist "%s"`, src))
+		"--", powerShell, "-c", fmt.Sprintf(`start-process -wait -passthru -verb runas powershell -argumentlist "%s"`, src))
 
 	// sometimes "start-process -wait" will return before the powershell
 	// window has finished running; double-check via get-process

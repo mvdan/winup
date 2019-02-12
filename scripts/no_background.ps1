@@ -21,9 +21,9 @@ Set-Service "WSearch" -StartupType Disabled
 Stop-Service "DiagTrack" -WarningAction SilentlyContinue
 Set-Service "DiagTrack" -StartupType Disabled
 
-# Uninstall Windows Defender, since we won't be browsing the internet or
+# Disable Windows Defender, since we won't be browsing the internet or
 # installing random software.
-Uninstall-WindowsFeature -Name Windows-Defender
+Set-MpPreference -DisableRealtimeMonitoring $true
 
 # Disable Windows updates, since most users won't need them by default.
 $WindowsUpdatePath = "HKLM:SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\"
@@ -39,6 +39,7 @@ Set-ItemProperty -Path $AutoUpdatePath -Name NoAutoUpdate -Value 1
 Get-AppxPackage *windowsstore* | Remove-AppxPackage
 
 # While at it, remove Edge too, since debloater doesn't do that.
-Get-AppxPackage *edge* | Remove-AppxPackage
+# TODO: the command actually fails.
+#Get-AppxPackage *edge* | Remove-AppxPackage
 
 # TODO: disable background net usage, but how?
