@@ -25,6 +25,9 @@ The final VM snapshot will be better than the original from Microsoft:
 * Slim: removed apps like Xbox, OneDrive, Skype, and Duolingo (TODO)
 * Idle: disabled unnecessary services like indexing and telemetry (TODO)
 
+The final image has the users `ieuser` and `administrator`, both with the
+default password `Passw0rd!`.
+
 It should also be trivial to install developer tools on the final VM, such as
 Git or Go. That's also a TODO for now.
 
@@ -38,6 +41,18 @@ Windows from installing random software, and to speed up the process.
 
 If you have issues with VirtualBox on Linux, see the [Arch Wiki
 page](https://wiki.archlinux.org/index.php/VirtualBox).
+
+### Development
+
+The project is script-like, using panics and helper functions to keep the code
+short and readable. Almost all encountered errors stop the process, anyway.
+
+Sleeps should be avoided at all costs. Waits and events are better than periodic
+polling, if possible.
+
+Continuous Integration would be good, but I don't know a free service that's
+powerful enough. I don't have a desktop or server powerful enough lying around
+for the job.
 
 ### License
 
