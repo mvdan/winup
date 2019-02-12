@@ -1,0 +1,13 @@
+# Downloaded archives
+/cache/
+*.zip
+*.iso
+*.ova
+*.exe
+*.msi
+
+# Generated files
+*.json
+
+# Build artifacts
+/winup
