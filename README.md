@@ -1,5 +1,7 @@
 # winup
 
+Archived: look at https://github.com/quickemu-project/quickemu instead.
+
 Automate
 [downloading](https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/)
 and setting up a Windows 10 64-bit VM on VirtualBox.
